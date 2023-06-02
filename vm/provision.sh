@@ -5,6 +5,7 @@ set -e
 PACKAGES=(
   "python"
   "python-pip"
+  "python-paho-mqtt"
   "mosquitto"
 )
 PATH_ENTRIES=(
