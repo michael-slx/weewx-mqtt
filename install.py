@@ -25,7 +25,7 @@ def loader() -> ExtensionInstaller:
 class MqttInstaller(ExtensionInstaller):
     def __init__(self) -> None:
         super().__init__(
-            version="0.1.0",
+            version="0.2.0",
             name='MQTT',
             description="Extension for uploading LOOP data to an MQTT broker",
             author='Michael Schantl',
