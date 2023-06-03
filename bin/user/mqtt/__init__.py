@@ -26,6 +26,10 @@ import weewx.restx
 from user.mqtt.configuration import Configuration
 from weewx.units import to_std_system
 
+_TOPIC_STATUS = "connection_status"
+_STATUS_ONLINE = "online"
+_STATUS_OFFLINE = "offline"
+
 log = logging.getLogger(__name__)
 
 
@@ -76,15 +80,18 @@ class MqttThread(weewx.restx.RESTThread):
                  q: queue.Queue,
                  config: configuration.Configuration,
                  manager_dict: Optional[dict] = None):
+
         super().__init__(q,
                          protocol_name="MQTT",
                          manager_dict=manager_dict,
                          post_interval=None,
                          log_success=config.log_success,
                          log_failure=config.log_failure)
-        self._client = self._create_client(config)
+
         self._topic = config.topic
         self._unit_system = config.unit_system_int
+
+        self._client = self._create_client(config)
 
     def _create_client(self, config: configuration.Configuration) -> MqttClient:
         pad = "%032x" % random.getrandbits(128)
@@ -99,6 +106,8 @@ class MqttThread(weewx.restx.RESTThread):
             client.username_pw_set(config.user, config.password)
 
         port = config.port if config.port is not None else 1883
+
+        client.will_set(self._status_topic, _STATUS_OFFLINE, retain=True)
 
         try:
             client.connect(config.host, port)
@@ -137,6 +146,8 @@ class MqttThread(weewx.restx.RESTThread):
         self._post_record(record_converted_units)
 
     def _post_record(self, record: dict) -> None:
+        self._publish_status()
+
         for key, value in record.items():
             unit_key = _get_unit_key(observation_key=key, unit_system=record['usUnits'])
             topic = self._build_topic(observation=key, unit=unit_key)
@@ -146,6 +157,13 @@ class MqttThread(weewx.restx.RESTThread):
 
             if status != paho.mqtt.client.MQTT_ERR_SUCCESS:
                 self._log_failure("Publish failed for \"%s\": %s" % (str(topic), paho.mqtt.client.error_string(status)))
+
+    def _publish_status(self) -> None:
+        self._client.publish(self._status_topic, _STATUS_ONLINE, retain=True)
+
+    @property
+    def _status_topic(self):
+        return self._build_topic(_TOPIC_STATUS)
 
     def _build_topic(self, observation: str, unit: Optional[str] = None) -> str:
         observation_key = f"{observation}_{unit}" if unit else observation
