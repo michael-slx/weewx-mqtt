@@ -1,3 +1,7 @@
+# Note
+
+This project is **no longer supported**. Use [**matthewwall/weewx-mqtt**](https://github.com/matthewwall/weewx-mqtt) instead.
+
 # MQTT addon for WeeWX
 
 Extension for WeeWX that allows publishing LOOP records to an MQTT broker.
